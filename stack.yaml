@@ -37,7 +37,9 @@ resolver: lts-8.23
 # will not be run. This is useful for tweaking upstream packages.
 packages:
 - '.'
-- location: '../diagrams-qrcode'
+- location:
+    git: git@github.com:sbditto85/diagrams-qrcode.git
+    commit: 6bb30b88376d9253504fafb49fe2950d9c7d51cf
   extra-dep: true
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)

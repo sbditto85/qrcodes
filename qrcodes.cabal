@@ -26,6 +26,7 @@ library
                      , diagrams-lib
                      , diagrams-qrcode
                      , diagrams-svg
+                     , haskell-qrencode
                      , nonce
                      , qrcode
                      , time

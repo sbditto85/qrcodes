@@ -5,12 +5,14 @@ module Lib
     , lvtTotpParams
     , secretToEncoded
     , verify
+    , testItOut
     ) where
 
 import           Data.Array                 (Array)
 import           Data.Base32String.Default
 import qualified Data.ByteString.Char8      as BC
 import           Data.Colour.Names          (black, white)
+import           Data.List                  (foldl')
 import           Data.Maybe                 (fromJust)
 import           Data.Monoid
 import           Data.Time.Clock.POSIX
@@ -31,10 +33,13 @@ import           Crypto.Hash.Algorithms
 import qualified Crypto.Nonce               as N
 import           Crypto.OTP
 
-testItOut = do
-  let matrix = fromJust $ encodeQRCode
+testItOut mToTest = do
+  rando <- randomSecret
+  let randoStr = foldl' (\sofar c -> (if c == '_' then '-' else c) : sofar) "" $ BC.unpack rando
+      matrix = fromJust $ encodeQRCode $ maybe randoStr id mToTest
       dData = diagramsData matrix
       svg = dData `seq` toSVG dData
+  putStrLn $ maybe randoStr id mToTest
   renderToFile svg
 
 otherSecret =  BC.pack "bobloblaw!"
@@ -43,20 +48,64 @@ googleSecret = BC.pack "Hello!\222\173\190\239"
 randomSecret :: IO BC.ByteString
 randomSecret = do
   g <- N.new
-  N.nonce128 g
+  N.nonce128url g
 
 
-encodeQRCode :: Maybe Matrix
-encodeQRCode =
-  case version 1 of
+encodeQRCode :: String -> Maybe Matrix
+encodeQRCode toEncode =
+  case version $ selectVersionNum (length toEncode) of
     Nothing ->
       error "ahhh"
     Just v ->
       let
-        errorLevel = Q
+        errorLevel = L
         numOrAlpha = Alphanumeric
       in
-        encode v errorLevel numOrAlpha "bobloblaw"
+        encode v errorLevel numOrAlpha toEncode
+  where
+    selectVersionNum len
+      -- FOR L
+      | len < 25 = 1
+      | len < 47 = 2
+      | len < 77 = 3
+      | len < 114 = 4
+      | len < 154 = 5
+      | len < 195 = 6
+      | len < 224 = 7
+      | len < 279 = 8
+      | len < 335 = 9
+      | len < 395 = 10
+      | otherwise = 10
+
+      -- FOR M
+      {-
+      | len < 20 = 1
+      | len < 38 = 2
+      | len < 61 = 3
+      | len < 90 = 4
+      | len < 122 = 5
+      | len < 154 = 6
+      | len < 178 = 7
+      | len < 221 = 8
+      | len < 262 = 9
+      | len < 311 = 10
+      | otherwise = 10
+      -}
+
+      -- FOR Q
+      {-
+      | len < 16 = 1
+      | len < 29 = 2
+      | len < 47 = 3
+      | len < 67 = 4
+      | len < 87 = 5
+      | len < 108 = 6
+      | len < 125 = 7
+      | len < 157 = 8
+      | len < 189 = 9
+      | len < 221 = 10
+      | otherwise = 10
+      -}
 
 
 diagramsData :: Matrix -> Path V2 Double

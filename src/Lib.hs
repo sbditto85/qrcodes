@@ -8,14 +8,25 @@ module Lib
     , testItOut
     ) where
 
+import           Codec.Binary.QRCode
+import           Crypto.Hash.Algorithms
+import qualified Crypto.Nonce               as N
+import           Crypto.OTP
 import           Data.Array                 (Array)
-import           Data.Base32String.Default
-import qualified Data.ByteString.Char8      as BC
+import qualified Data.Base32.Encode         as Base32
+-- import qualified Data.ByteString.Base32     as Base32
+import qualified Data.Bits                  as BI
+import qualified Data.ByteString            as BS
+import qualified Data.ByteString.Char8      as BSC
 import           Data.Colour.Names          (black, white)
+import           Data.Function              ((&))
 import           Data.List                  (foldl')
 import           Data.Maybe                 (fromJust)
 import           Data.Monoid
+import qualified Data.QRCode                as QR
 import           Data.Time.Clock.POSIX
+import qualified Data.Vector.Storable       as VS
+import           Data.Word
 import           Diagrams.Backend.SVG
 import           Diagrams.Core.Types
 import           Diagrams.Path
@@ -28,24 +39,45 @@ import qualified Diagrams.Located           as D
 import qualified Diagrams.Path              as D
 import qualified Diagrams.Trail             as D
 import qualified Diagrams.TwoD              as D
-import           Codec.Binary.QRCode
-import           Crypto.Hash.Algorithms
-import qualified Crypto.Nonce               as N
-import           Crypto.OTP
 
 testItOut mToTest = do
   rando <- randomSecret
-  let randoStr = foldl' (\sofar c -> (if c == '_' then '-' else c) : sofar) "" $ BC.unpack rando
-      matrix = fromJust $ encodeQRCode $ maybe randoStr id mToTest
+  let encoded = secretToEncoded rando
+      encodedStr = "otpauth://totp/LVTAUTH:demo@liveviewtech.com?secret=" ++ (BSC.unpack encoded) ++ "&issuer=LVT"
+      randoStr = BSC.unpack rando
+      matrix = fromJust $ encodeQRCode $ maybe encodedStr (BSC.unpack . secretToEncoded . BSC.pack) mToTest
       dData = diagramsData matrix
       svg = dData `seq` toSVG dData
   putStrLn $ maybe randoStr id mToTest
+  putStrLn $ maybe
+    encodedStr
+    (BSC.unpack . secretToEncoded . BSC.pack)
+    mToTest
   renderToFile svg
 
-otherSecret =  BC.pack "bobloblaw!"
-googleSecret = BC.pack "Hello!\222\173\190\239"
+testItOut' mToTest = do
+  rando <- randomSecret
+  let encoded = secretToEncoded rando
+      encodedStr = "otpauth://totp/LVTAUTH:demo@liveviewtech.com?secret=" ++ (BSC.unpack encoded) ++ "&issuer=LVT"
+      randoStr = BSC.unpack rando
+      qrString = maybe encodedStr (BSC.unpack . secretToEncoded . BSC.pack) mToTest
+      version = Nothing
+      caseSensative = True
+  qrCode <- QR.encodeString qrString version QR.QR_ECLEVEL_L QR.QR_MODE_EIGHT caseSensative
+  let matrix = QR.toMatrix qrCode
+      dData = pathMatrix matrix
+      svg = dData `seq` stroke dData
+  putStrLn $ maybe randoStr id mToTest
+  putStrLn $ maybe
+    encodedStr
+    (BSC.unpack . secretToEncoded . BSC.pack)
+    mToTest
+  renderToFile svg
 
-randomSecret :: IO BC.ByteString
+otherSecret =  BSC.pack "bobloblaw!"
+googleSecret = BSC.pack "Hello!\222\173\190\239"
+
+randomSecret :: IO BSC.ByteString
 randomSecret = do
   g <- N.new
   N.nonce128url g
@@ -59,7 +91,7 @@ encodeQRCode toEncode =
     Just v ->
       let
         errorLevel = L
-        numOrAlpha = Alphanumeric
+        numOrAlpha = EightBit
       in
         encode v errorLevel numOrAlpha toEncode
   where
@@ -153,7 +185,7 @@ lvtTotpParams =
     timeStep = 30
     digits = OTP6
     algo = SHA1
-    skew = TwoSteps
+    skew = OneStep
   in
     case mkTOTPParams algo countFrom timeStep digits skew of
       Left _ ->
@@ -169,6 +201,7 @@ verify secret totp = do
   pure isGood
 
 
-secretToEncoded = fromBytes
+secretToEncoded :: BS.ByteString -> BS.ByteString
+secretToEncoded secret = BSC.filter (/='=') $ Base32.encode secret
 
-encodedToSecret = toBytes
+encodedToSecret = error "this doesn't work yet"

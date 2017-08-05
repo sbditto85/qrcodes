@@ -19,7 +19,6 @@ library
   build-depends:       array
                      , base >= 4.7 && < 5
                      , bytestring
-                     , base32string
                      , colour
                      , cryptonite
                      , diagrams-core
@@ -27,9 +26,12 @@ library
                      , diagrams-qrcode
                      , diagrams-svg
                      , haskell-qrencode
+                     , haskell-base32-string
+                     , memory
                      , nonce
                      , qrcode
                      , time
+                     , vector
   default-language:    Haskell2010
 
 executable qrcodes-exe

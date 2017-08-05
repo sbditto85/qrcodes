@@ -15,7 +15,7 @@
 # resolver:
 #  name: custom-snapshot
 #  location: "./custom-snapshot.yaml"
-resolver: lts-8.23
+resolver: lts-9.0
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -40,6 +40,10 @@ packages:
 - location:
     git: git@github.com:sbditto85/diagrams-qrcode.git
     commit: 6bb30b88376d9253504fafb49fe2950d9c7d51cf
+  extra-dep: true
+- location:
+    git: git@github.com:sbditto85/haskell-base32-string.git
+    commit: 9dad25029c880891954f84a1935dfc49c672d5a7
   extra-dep: true
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)
